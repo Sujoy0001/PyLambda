@@ -1,7 +1,9 @@
 .venv
 
 .env
+.idea
+.junie
 
-__pychach__
+__pychach__/
 
 Logs/app.log

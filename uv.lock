@@ -84,6 +84,12 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/93/4b/979db9e44be09f71e85c9c8cfc42f258adfb7d93ce01deed2788b2948919/logging-0.4.9.6.tar.gz", hash = "sha256:26f6b50773f085042d301085bd1bf5d9f3735704db9f37c1ce6d8b85c38f2417", size = 96029, upload-time = "2013-06-04T23:43:22.086Z" }
 
 [[package]]
+name = "logging-config"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/78/2101f002278a437b85ba1a4bad0a91ba04fa1fb21a02518a3ed3186ada2e/logging-config-1.0.4.tar.gz", hash = "sha256:840a2c807e5580b9da35dbbc2513b2206c9a37c2f4f7ca605b035a3ae88f55c7", size = 4665, upload-time = "2012-04-18T22:48:39.383Z" }
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.45.0"
 source = { registry = "https://pypi.org/simple" }
@@ -219,6 +225,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "logging" },
+    { name = "logging-config" },
     { name = "pydantic" },
     { name = "python-json-logger" },
     { name = "uvicorn" },
@@ -228,6 +235,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", extras = ["standed"], specifier = ">=0.142.1" },
     { name = "logging", specifier = ">=0.4.9.6" },
+    { name = "logging-config", specifier = ">=1.0.4" },
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "python-json-logger", specifier = ">=4.2.0" },
     { name = "uvicorn", specifier = ">=0.54.0" },
