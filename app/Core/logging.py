@@ -2,7 +2,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-LOG_FILE = "app.log"
+LOG_FILE = "Logs/app.log"
 
 
 def _init_logger():
