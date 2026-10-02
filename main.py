@@ -3,6 +3,7 @@ import time
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.Core.logging import logger  # Direct clean import
+from app.Api.router import api_router
 
 app = FastAPI()
 
@@ -47,3 +48,5 @@ def read_root():
 def read_health():
     # Clean and automatic!
     return {"status": "ok"}
+
+app.include_router(api_router)
