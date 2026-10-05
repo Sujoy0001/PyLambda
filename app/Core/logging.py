@@ -1,6 +1,7 @@
 # app/Core/logging.py
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 LOG_FILE = "Logs/app.log"
 
@@ -15,6 +16,8 @@ def _init_logger():
         formatter = logging.Formatter(
             "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
         )
+
+        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
 
         # Console Output
         console = logging.StreamHandler()
