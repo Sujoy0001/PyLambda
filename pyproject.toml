@@ -3,7 +3,7 @@ name = "pylambda"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi[standed]>=0.142.1",
+    "fastapi[standard,standed]>=0.142.1",
     "logging>=0.4.9.6",
     "logging-config>=1.0.4",
     "pydantic>=2.13.5",
