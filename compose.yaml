@@ -1,5 +1,5 @@
 services:
-  api:
+  server:
     build: .
     env_file:
       - .env
