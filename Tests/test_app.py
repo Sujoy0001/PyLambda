@@ -8,7 +8,7 @@ os.environ.setdefault(
     "JWT_SECRET_KEY", "test-only-secret-key-that-is-at-least-32-characters"
 )
 
-from main import app
+from app.main import app
 
 
 class AppTests(unittest.TestCase):

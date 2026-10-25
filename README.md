@@ -31,11 +31,28 @@ created automatically.
 Start the development server from the project root:
 
 ```powershell
-uv run uvicorn main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 The interactive API documentation is available at
 <http://127.0.0.1:8000/docs>.
+
+## Run with Docker
+
+After configuring `.env` as described above, build and start the app from the
+project root:
+
+```powershell
+docker compose up --build
+```
+
+Compose loads `.env` into the container at runtime. The file is not copied into
+the image. Stop the app with `Ctrl+C`, or run `docker compose down` in another
+terminal.
+
+The database must be reachable from inside the container. When connecting to a
+database running directly on the host, use `host.docker.internal` instead of
+`localhost` in `DATABASE_URL`.
 
 ## API
 
