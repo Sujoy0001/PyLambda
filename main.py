@@ -1,11 +1,24 @@
 # main.py
 import time
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.Core.logging import logger  # Direct clean import
-from app.Api.router import api_router
 
-app = FastAPI()
+from app.Core.logging import logger
+from app.Api.router import api_router
+from app.Auth.security import get_jwt_secret
+from app.db.session import init_db
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    get_jwt_secret()
+    init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 # 1. Define the Request Logging Middleware
@@ -33,9 +46,9 @@ class LogRequestsMiddleware(BaseHTTPMiddleware):
 app.add_middleware(LogRequestsMiddleware)
 
 
-@app.on_event("startup")
-async def startup():
-    logger.info("Server is starting up")
+# @app.on_event("startup")
+# async def startup():
+#     logger.info("Server is starting up")
 
 
 @app.get("/")

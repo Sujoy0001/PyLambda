@@ -1,7 +1,7 @@
-from app.Api.V1.dataValue import router
 from fastapi import APIRouter
+
+from app.Api.v1.router import router as v1_router
 
 api_router = APIRouter()
 
-api_router.include_router(router, prefix='/v1', tags=["V1 router"])
-
+api_router.include_router(v1_router)

@@ -6,8 +6,13 @@ dependencies = [
     "fastapi[standard]>=0.142.1",
     "logging>=0.4.9.6",
     "logging-config>=1.0.4",
+    "psycopg[binary]>=3.2.0",
+    "pwdlib[argon2]>=0.2.1",
     "pydantic>=2.13.5",
+    "pyjwt>=2.10.0",
+    "python-dotenv>=1.0.0",
     "python-json-logger>=4.2.0",
+    "sqlalchemy>=2.0.0",
     "starlette>=1.7.0",
     "uvicorn>=0.54.0",
 ]
