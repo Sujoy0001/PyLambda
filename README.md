@@ -74,5 +74,5 @@ after 30 minutes.
 Run the test suite with:
 
 ```powershell
-uv run python -m unittest discover -s Tests
+uv run python -m pytest
 ```

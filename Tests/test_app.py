@@ -34,12 +34,22 @@ class AppTests(unittest.TestCase):
         self.assertEqual(response.json(), {"status": "ok"})
 
     def test_signup_login_and_protected_profile(self):
-        credentials = {"username": "test-user", "password": "correct-horse-battery"}
+        credentials = {
+            "username": "test-user",
+            "useremail": "test-user@example.com",
+            "password": "correct-horse-battery",
+        }
         signup_response = self.client.post("/v1/auth/signup", json=credentials)
         login_response = self.client.post("/v1/auth/login", json=credentials)
 
         self.assertEqual(signup_response.status_code, 201)
-        self.assertEqual(signup_response.json(), {"username": credentials["username"]})
+        self.assertEqual(
+            signup_response.json(),
+            {
+                "username": credentials["username"],
+                "useremail": credentials["useremail"],
+            },
+        )
         self.assertEqual(login_response.status_code, 200)
         token = login_response.json()["access_token"]
 
@@ -47,16 +57,30 @@ class AppTests(unittest.TestCase):
             "/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
         )
         self.assertEqual(profile_response.status_code, 200)
-        self.assertEqual(profile_response.json(), {"username": credentials["username"]})
+        self.assertEqual(
+            profile_response.json(),
+            {
+                "username": credentials["username"],
+                "useremail": credentials["useremail"],
+            },
+        )
 
     def test_duplicate_signup_and_invalid_login_are_rejected(self):
-        credentials = {"username": "duplicate-user", "password": "correct-horse-battery"}
+        credentials = {
+            "username": "duplicate-user",
+            "useremail": "duplicate-user@example.com",
+            "password": "correct-horse-battery",
+        }
         self.client.post("/v1/auth/signup", json=credentials)
 
         duplicate_response = self.client.post("/v1/auth/signup", json=credentials)
         invalid_login_response = self.client.post(
             "/v1/auth/login",
-            json={"username": credentials["username"], "password": "wrong-password"},
+            json={
+                "username": credentials["username"],
+                "useremail": credentials["useremail"],
+                "password": "wrong-password",
+            },
         )
 
         self.assertEqual(duplicate_response.status_code, 409)
