@@ -3,6 +3,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+import uuid
+from datetime import datetime, timezone
 
 from app.Auth.schemas import Credentials, TokenResponse, UserResponse
 from app.Auth.security import (
@@ -12,7 +14,7 @@ from app.Auth.security import (
     hash_password,
     verify_password,
 )
-from app.db.models import User
+from app.Auth.models import User
 from app.db.session import get_db
 
 router = APIRouter()
@@ -29,12 +31,22 @@ def signup(credentials: Credentials, db: Session = Depends(get_db)) -> UserRespo
             status_code=status.HTTP_409_CONFLICT,
             detail="Username is already registered",
         )
+    
+    current_time = datetime.now(timezone.utc)
 
     user = User(
+        id=uuid.uuid4(),
         username=credentials.username,
+        useremail=credentials.useremail,
         hashed_password=hash_password(credentials.password),
+        isAdmin=False,
+        active=True,
+        verified=False,
+        created_at=current_time,
     )
+    
     db.add(user)
+    
     try:
         db.commit()
     except IntegrityError:
@@ -44,7 +56,10 @@ def signup(credentials: Credentials, db: Session = Depends(get_db)) -> UserRespo
             detail="Username is already registered",
         ) from None
 
-    return UserResponse(username=user.username)
+    return UserResponse(
+        username=user.username,
+        useremail=user.useremail
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -99,4 +114,7 @@ def get_current_user(
 def read_current_user(
     user: User = Depends(get_current_user),
 ) -> UserResponse:
-    return UserResponse(username=user.username)
+    return UserResponse(
+        username=user.username,
+        useremail=user.useremail
+    )
