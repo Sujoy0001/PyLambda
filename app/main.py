@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.Core.logging import logger
+from app.core.logging import logger
 from app.Api.router import api_router
 from app.Auth.security import get_jwt_secret
 from app.db.session import init_db
