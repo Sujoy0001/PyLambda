@@ -17,7 +17,7 @@ from app.Auth.security import (
 )
 from app.Auth.models import User, PhoneDetail
 from app.db.session import get_db
-from app.core.config import settings
+from app.Core.config import settings
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)

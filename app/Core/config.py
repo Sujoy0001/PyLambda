@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
 
     ACCESS_KEY: str = ""
-    NUMVERIFY_BASE_URL: str = "http://apilayer.net/api/validate"
+    NUMVERIFY_BASE_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
