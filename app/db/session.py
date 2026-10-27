@@ -8,6 +8,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.Auth.models import User
+from app.core.database_logging import (
+    close_database as dispose_database,
+    configure_database_connection_logging,
+    initialize_database,
+)
 
 load_dotenv()
 
@@ -20,7 +25,10 @@ def get_engine() -> Engine:
     if _engine is None:
         database_url = os.getenv("DATABASE_URL")
         if not database_url:
-            raise RuntimeError("DATABASE_URL must be configured before starting the application")
+            raise RuntimeError(
+                "DATABASE_URL must be configured before starting "
+                "the application"
+            )
 
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace(
@@ -35,12 +43,18 @@ def get_engine() -> Engine:
             poolclass=StaticPool if is_sqlite else None,
             pool_pre_ping=True,
         )
+        configure_database_connection_logging(_engine)
 
     return _engine
 
 
 def init_db() -> None:
-    User.metadata.create_all(bind=get_engine())
+    initialize_database(get_engine(), User.metadata)
+
+
+def close_db() -> None:
+    if _engine is not None:
+        dispose_database(_engine)
 
 
 def get_db() -> Generator[Session, None, None]:

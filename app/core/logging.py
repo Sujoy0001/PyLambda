@@ -1,4 +1,4 @@
-# app/Core/logging.py
+# app/core/logging.py
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -7,14 +7,14 @@ LOG_FILE = "Logs/app.log"
 
 
 def _init_logger():
-    # Using the root logger configuration applies it globally to FastAPI and Uvicorn
     logger = logging.getLogger("fastapi_app")
 
     if not logger.handlers:
         logger.setLevel(logging.INFO)
 
         formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+            "%(asctime)s - %(levelname)s - "
+            "[%(filename)s:%(lineno)d] - %(message)s"
         )
 
         Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
@@ -25,7 +25,9 @@ def _init_logger():
         logger.addHandler(console)
 
         # File Output
-        file_out = RotatingFileHandler(LOG_FILE, maxBytes=5_000_000, backupCount=3)
+        file_out = RotatingFileHandler(
+            LOG_FILE, maxBytes=5_000_000, backupCount=3
+        )
         file_out.setFormatter(formatter)
         logger.addHandler(file_out)
 

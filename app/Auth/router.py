@@ -1,13 +1,26 @@
+import hashlib
+import secrets
+import smtplib
+import uuid
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-import uuid
-from datetime import datetime, timezone
 import httpx
 
-from app.Auth.schemas import Credentials, LoginCredentials, TokenResponse, UserResponse, PhoneVerificationRequest
+from app.Auth.schemas import (
+    Credentials,
+    ForgotPasswordRequest,
+    LoginCredentials,
+    PasswordChangeRequest,
+    PhoneVerificationRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.Auth.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     create_access_token,
@@ -15,9 +28,14 @@ from app.Auth.security import (
     hash_password,
     verify_password,
 )
-from app.Auth.models import User, PhoneDetail
+from app.Auth.email import (
+    send_password_reset_email,
+    validate_smtp_configuration,
+)
+from app.Auth.models import PasswordResetToken, PhoneDetail, User
+from app.core.config import settings
+from app.core.logging import logger
 from app.db.session import get_db
-from app.Core.config import settings
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -120,9 +138,171 @@ def read_current_user(
         username=user.username,
         useremail=user.useremail
     )
-    
-# NUMVERIFY_BASE_URL = "https://apilayer.net/api/validate"
-# ACCESS_KEY = "116bf25b0cc92446398433550907b18f"
+
+
+@router.post("/me/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    payload: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    if not verify_password(
+        payload.current_password, current_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password",
+        )
+
+    now = datetime.now(timezone.utc)
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == current_user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    db.commit()
+    return {"message": "Password changed successfully"}
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    try:
+        validate_smtp_configuration()
+    except RuntimeError:
+        logger.exception("Password reset email is not configured")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset service is unavailable",
+        ) from None
+
+    user = db.scalar(
+        select(User).where(User.useremail == payload.useremail)
+    )
+    if user is None:
+        return {
+            "message": (
+                "If the account exists, a password reset email has been sent"
+            )
+        }
+
+    now = datetime.now(timezone.utc)
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+    token = secrets.token_urlsafe(32)
+    reset_token = PasswordResetToken(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        token_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        expires_at=now
+        + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+    )
+    db.add(reset_token)
+    db.commit()
+
+    try:
+        send_password_reset_email(user.useremail, token)
+    except (OSError, smtplib.SMTPException):
+        logger.exception("Failed to send password reset email")
+        db.delete(reset_token)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset email could not be sent",
+        ) from None
+
+    return {
+        "message": (
+            "If the account exists, a password reset email has been sent"
+        )
+    }
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    token_hash = hashlib.sha256(payload.token.encode("utf-8")).hexdigest()
+    reset_token = db.scalar(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == token_hash
+        )
+    )
+    now = datetime.now(timezone.utc)
+
+    if reset_token is None or reset_token.used_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token is invalid or expired",
+        )
+
+    expires_at = reset_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token is invalid or expired",
+        )
+
+    user = db.get(User, reset_token.user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token is invalid or expired",
+        )
+
+    token_update = db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.id == reset_token.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+        .returning(PasswordResetToken.id)
+    )
+    if token_update.scalar_one_or_none() is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token is invalid or expired",
+        )
+
+    user.hashed_password = hash_password(payload.new_password)
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.id != reset_token.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    db.commit()
+    return {"message": "Password reset successfully"}
 
 
 @router.post("/me/verify-phone", status_code=status.HTTP_200_OK)

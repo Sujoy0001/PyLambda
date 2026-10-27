@@ -14,6 +14,17 @@ class Settings(BaseSettings):
     ACCESS_KEY: str = ""
     NUMVERIFY_BASE_URL: str = ""
 
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_USE_TLS: bool = True
+    PASSWORD_RESET_API_URL: str = (
+        "http://localhost:8000/v1/auth/reset-password"
+    )
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

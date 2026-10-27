@@ -5,17 +5,29 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.Core.logging import logger
+from app.core.logging import logger
 from app.Api.router import api_router
 from app.Auth.security import get_jwt_secret
-from app.db.session import init_db
+from app.db.session import close_db, init_db
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    get_jwt_secret()
-    init_db()
-    yield
+    logger.info("Application startup initiated")
+    try:
+        get_jwt_secret()
+        init_db()
+    except Exception:
+        logger.exception("Application startup failed")
+        close_db()
+        raise
+
+    logger.info("Application startup completed successfully")
+    try:
+        yield
+    finally:
+        logger.info("Application shutdown initiated")
+        close_db()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -46,11 +58,6 @@ class LogRequestsMiddleware(BaseHTTPMiddleware):
 app.add_middleware(LogRequestsMiddleware)
 
 
-# @app.on_event("startup")
-# async def startup():
-#     logger.info("Server is starting up")
-
-
 @app.get("/")
 def read_root():
     # You don't need manual logger.info("Server is running") anymore!
@@ -61,5 +68,6 @@ def read_root():
 def read_health():
     # Clean and automatic!
     return {"status": "ok"}
+
 
 app.include_router(api_router)
