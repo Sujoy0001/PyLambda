@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.Auth.models import User
-from app.core.database_logging import (
+from app.middlewares.database_logging import (
     close_database as dispose_database,
     configure_database_connection_logging,
     initialize_database,
