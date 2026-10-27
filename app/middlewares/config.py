@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     DATABASE_URL: str = ""
+    CORS_ORIGINS: list[str] = ["*"]
 
     ACCESS_KEY: str = ""
     NUMVERIFY_BASE_URL: str = ""

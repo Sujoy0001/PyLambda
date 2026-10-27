@@ -23,6 +23,9 @@ settings:
 - `DATABASE_URL` — a SQLAlchemy database URL, such as
   `postgresql+psycopg://user:password@localhost:5432/pylambda`
 - `JWT_SECRET_KEY` — a random secret with at least 32 characters
+- `CORS_ORIGINS` — JSON array of allowed browser origins; defaults to `["*"]`.
+  For production, set this to your frontend origin(s), for example
+  `["https://example.com"]`.
 
 For password-reset emails, configure the SMTP values in `.env`. The example
 uses Gmail's SMTP host; for Gmail, `SMTP_PASSWORD` must be a Google App
@@ -61,6 +64,10 @@ uv run uvicorn app.main:app --reload
 
 The interactive API documentation is available at
 <http://127.0.0.1:8000/docs>.
+
+The API enables CORS for browser-based clients. By default any origin is
+allowed and cookies are not enabled. Restrict `CORS_ORIGINS` in `.env` to your
+frontend's origin(s) when deploying.
 
 ## Run with Docker
 

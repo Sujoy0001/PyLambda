@@ -34,6 +34,23 @@ class AppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    def test_cors_preflight_allows_browser_api_requests(self):
+        response = self.client.options(
+            "/v1/auth/me",
+            headers={
+                "Origin": "https://frontend.example",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "*")
+        self.assertIn("GET", response.headers["access-control-allow-methods"])
+        self.assertIn(
+            "authorization", response.headers["access-control-allow-headers"]
+        )
+
     def test_database_startup_and_shutdown_are_logged(self):
         from sqlalchemy import create_engine
         from sqlalchemy.schema import MetaData
