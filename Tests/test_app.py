@@ -176,7 +176,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(new_password_login.status_code, 200)
 
     def test_forgot_password_token_resets_password_once(self):
-        from app.middlewares.config import settings
+        from app.config import settings
 
         credentials = {
             "username": "forgot-password-user",
@@ -237,7 +237,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(new_password_login.status_code, 200)
 
     def test_forgot_password_response_does_not_disclose_unknown_email(self):
-        from app.middlewares.config import settings
+        from app.config import settings
 
         with (
             patch.object(settings, "SMTP_HOST", "smtp.example.com"),

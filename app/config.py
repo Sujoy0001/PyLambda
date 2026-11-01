@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve()
 
 
 class Settings(BaseSettings):
@@ -25,6 +25,8 @@ class Settings(BaseSettings):
         "http://localhost:8000/v1/auth/reset-password"
     )
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+    
+    REDIS_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

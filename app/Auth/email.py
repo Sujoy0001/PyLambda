@@ -1,7 +1,7 @@
 import smtplib
 from email.message import EmailMessage
 
-from app.middlewares.config import settings
+from app.config import settings
 
 
 def validate_smtp_configuration() -> None:
