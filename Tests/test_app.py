@@ -36,7 +36,7 @@ class AppTests(unittest.TestCase):
 
     def test_cors_preflight_allows_browser_api_requests(self):
         response = self.client.options(
-            "/v1/auth/me",
+            "/apps/v1/auth/me",
             headers={
                 "Origin": "https://frontend.example",
                 "Access-Control-Request-Method": "GET",
@@ -90,8 +90,8 @@ class AppTests(unittest.TestCase):
             "useremail": "test-user@example.com",
             "password": "correct-horse-battery",
         }
-        signup_response = self.client.post("/v1/auth/signup", json=credentials)
-        login_response = self.client.post("/v1/auth/login", json=credentials)
+        signup_response = self.client.post("/apps/v1/auth/signup", json=credentials)
+        login_response = self.client.post("/apps/v1/auth/login", json=credentials)
 
         self.assertEqual(signup_response.status_code, 201)
         self.assertEqual(
@@ -105,7 +105,7 @@ class AppTests(unittest.TestCase):
         token = login_response.json()["access_token"]
 
         profile_response = self.client.get(
-            "/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+            "/apps/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
         )
         self.assertEqual(profile_response.status_code, 200)
         self.assertEqual(
@@ -122,15 +122,15 @@ class AppTests(unittest.TestCase):
             "useremail": "password-change-user@example.com",
             "password": "original-password",
         }
-        signup_response = self.client.post("/v1/auth/signup", json=credentials)
+        signup_response = self.client.post("/apps/v1/auth/signup", json=credentials)
         self.assertEqual(signup_response.status_code, 201)
 
-        login_response = self.client.post("/v1/auth/login", json=credentials)
+        login_response = self.client.post("/apps/v1/auth/login", json=credentials)
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         unauthenticated_response = self.client.post(
-            "/v1/auth/me/change-password",
+            "/apps/v1/auth/me/change-password",
             json={
                 "current_password": credentials["password"],
                 "new_password": "updated-password",
@@ -139,7 +139,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(unauthenticated_response.status_code, 401)
 
         incorrect_password_response = self.client.post(
-            "/v1/auth/me/change-password",
+            "/apps/v1/auth/me/change-password",
             headers=headers,
             json={
                 "current_password": "wrong-password",
@@ -149,7 +149,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(incorrect_password_response.status_code, 400)
 
         change_response = self.client.post(
-            "/v1/auth/me/change-password",
+            "/apps/v1/auth/me/change-password",
             headers=headers,
             json={
                 "current_password": credentials["password"],
@@ -159,14 +159,14 @@ class AppTests(unittest.TestCase):
         self.assertEqual(change_response.status_code, 200)
 
         old_password_login = self.client.post(
-            "/v1/auth/login",
+            "/apps/v1/auth/login",
             json={
                 "useremail": credentials["useremail"],
                 "password": credentials["password"],
             },
         )
         new_password_login = self.client.post(
-            "/v1/auth/login",
+            "/apps/v1/auth/login",
             json={
                 "useremail": credentials["useremail"],
                 "password": "updated-password",
@@ -183,7 +183,7 @@ class AppTests(unittest.TestCase):
             "useremail": "forgot-password-user@example.com",
             "password": "original-password",
         }
-        signup_response = self.client.post("/v1/auth/signup", json=credentials)
+        signup_response = self.client.post("/apps/v1/auth/signup", json=credentials)
         self.assertEqual(signup_response.status_code, 201)
 
         with (
@@ -194,7 +194,7 @@ class AppTests(unittest.TestCase):
             ) as send_email,
         ):
             forgot_response = self.client.post(
-                "/v1/auth/forgot-password",
+                "/apps/v1/auth/forgot-password",
                 json={"useremail": credentials["useremail"]},
             )
 
@@ -202,7 +202,7 @@ class AppTests(unittest.TestCase):
         token = send_email.call_args.args[1]
 
         reset_response = self.client.post(
-            "/v1/auth/reset-password",
+            "/apps/v1/auth/reset-password",
             json={
                 "token": token,
                 "new_password": "updated-password",
@@ -211,7 +211,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(reset_response.status_code, 200)
 
         reused_token_response = self.client.post(
-            "/v1/auth/reset-password",
+            "/apps/v1/auth/reset-password",
             json={
                 "token": token,
                 "new_password": "another-password",
@@ -220,14 +220,14 @@ class AppTests(unittest.TestCase):
         self.assertEqual(reused_token_response.status_code, 400)
 
         old_password_login = self.client.post(
-            "/v1/auth/login",
+            "/apps/v1/auth/login",
             json={
                 "useremail": credentials["useremail"],
                 "password": credentials["password"],
             },
         )
         new_password_login = self.client.post(
-            "/v1/auth/login",
+            "/apps/v1/auth/login",
             json={
                 "useremail": credentials["useremail"],
                 "password": "updated-password",
@@ -247,7 +247,7 @@ class AppTests(unittest.TestCase):
             ) as send_email,
         ):
             response = self.client.post(
-                "/v1/auth/forgot-password",
+                "/apps/v1/auth/forgot-password",
                 json={"useremail": "unknown@example.com"},
             )
 
@@ -269,13 +269,13 @@ class AppTests(unittest.TestCase):
             "useremail": "duplicate-user@example.com",
             "password": "correct-horse-battery",
         }
-        self.client.post("/v1/auth/signup", json=credentials)
+        self.client.post("/apps/v1/auth/signup", json=credentials)
 
         duplicate_response = self.client.post(
-            "/v1/auth/signup", json=credentials
+            "apps/v1/auth/signup", json=credentials
         )
         invalid_login_response = self.client.post(
-            "/v1/auth/login",
+            "/apps/v1/auth/login",
             json={
                 "username": credentials["username"],
                 "useremail": credentials["useremail"],
@@ -287,8 +287,8 @@ class AppTests(unittest.TestCase):
         self.assertEqual(invalid_login_response.status_code, 401)
 
     def test_protected_profile_requires_a_valid_token(self):
-        response = self.client.get("/v1/auth/me")
-        removed_data_route = self.client.get("/v1/data")
+        response = self.client.get("/apps/v1/auth/me")
+        removed_data_route = self.client.get("/apps/v1/data")
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(removed_data_route.status_code, 404)
