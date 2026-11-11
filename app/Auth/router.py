@@ -33,7 +33,7 @@ from app.Auth.email import (
     validate_smtp_configuration,
 )
 from app.Auth.models import PasswordResetToken, PhoneDetail, User
-from app.middlewares.config import settings
+from app.config import settings
 from app.middlewares.logging import logger
 from app.db.session import get_db
 

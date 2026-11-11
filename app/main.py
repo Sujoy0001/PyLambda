@@ -9,18 +9,28 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.middlewares.logging import logger
 from app.Api.router import api_router
 from app.Auth.security import get_jwt_secret
-from app.middlewares.config import settings
+from app.config import settings
 from app.db.session import close_db, init_db
+import redis.asyncio as redis
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     logger.info("Application startup initiated")
     try:
         get_jwt_secret()
         init_db()
+
+        app.state.redis = redis.from_url(
+            settings.REDIS_URL, decode_responses=True
+        )
+        await app.state.redis.ping()
+        logger.info("Redis connected")
     except Exception:
         logger.exception("Application startup failed")
+        r = getattr(app.state, "redis", None)
+        if r:
+            await r.aclose()
         close_db()
         raise
 
@@ -29,6 +39,7 @@ async def lifespan(_: FastAPI):
         yield
     finally:
         logger.info("Application shutdown initiated")
+        await app.state.redis.aclose()
         close_db()
 
 
@@ -76,6 +87,14 @@ def read_root():
 def read_health():
     # Clean and automatic!
     return {"status": "ok"}
+
+@app.get("/redis_health")
+async def redis_health(request: Request):
+    try:
+        await request.app.state.redis.ping()
+        return {"status": "ok", "redis": "ok"}
+    except Exception:
+        return {"status": "degraded", "redis": "down"}
 
 
 app.include_router(api_router)
