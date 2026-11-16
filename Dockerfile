@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,17 +7,35 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv \
-    && useradd --create-home --shell /usr/sbin/nologin app
+RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 
-COPY --chown=app:app . .
-RUN mkdir -p Logs && chown app:app Logs
+COPY . .
+RUN uv sync --locked --no-dev
+
+# build step
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+RUN groupadd --system app \
+    && useradd --system --gid app --create-home --home-dir /home/app app \
+    && mkdir -p /app/Logs \
+    && chown -R app:app /app
+
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder --chown=app:app /app/app /app/app
+COPY --from=builder --chown=app:app /app/Logs /app/Logs
 
 USER app
 
 EXPOSE 8000
 
-CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

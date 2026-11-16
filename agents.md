@@ -1,87 +1,78 @@
 # AI Agent Guide
 
 This guide explains where to start when changing PyLambda and how to keep
-changes consistent with the existing application.
+changes consistent with the existing FastAPI project.
 
 ## Start here
 
-1. Read `README.md` for setup, configuration, and user-facing API behavior.
-2. Read `pyproject.toml` for the supported Python version and dependencies.
-3. Find the existing route and follow its imports before deciding where to
-   make a change. Avoid creating a parallel implementation.
+1. Read `README.md` for the app setup, required environment variables, and the
+   public API surface.
+2. Read `pyproject.toml` for supported Python and project dependencies.
+3. Follow the route imports and router structure before adding new code; do not
+   create a parallel implementation that bypasses the current app layout.
 4. Read `agents2.md` before changing or adding automated tests.
 
-PyLambda is a Python 3.11+ FastAPI application. Use `uv` for project
-dependencies and commands.
+PyLambda is a Python 3.11+ FastAPI application using SQLAlchemy, Redis, and
+JWT-based auth. Use `uv` for dependency and test commands.
 
 ## Application map
 
-- `app/main.py` creates the FastAPI app, configures middleware, provides the
-  root and health endpoints, and manages database and Redis startup/shutdown.
-- `app/Api/router.py` assembles API routers under the `/apps` prefix.
-- `app/Api/v1/auth_routes.py` mounts the auth router at `/v1/auth`.
-- `app/Auth/router.py` implements authentication, password reset, and phone
-  verification endpoints. `app/Auth/schemas.py` defines their request and
-  response models; `app/Auth/security.py` handles password and JWT helpers.
-- `app/Api/v1/product_routes.py` exposes database-backed product reads.
-- `app/Api/v2/product_routes.py` exposes product reads and creation with Redis
-  caching. `app/redis/product_cache.py` owns cache keys, TTLs, and invalidation.
-- `app/services/product_service.py` contains product database operations.
-- `app/models/` and `app/Auth/models.py` contain SQLAlchemy models.
-- `app/schemas/` and `app/Auth/schemas.py` contain Pydantic API schemas.
-- `app/db/session.py` provides the database engine, lifecycle, and `get_db`
-  dependency.
-- `app/config.py` defines application settings.
-- `Tests/test_app.py` contains automated application tests.
-- `Tests/load_test.py` is a separate script for exercising a running service;
-  it is not a unit or integration test.
+- `app/main.py` builds the FastAPI app, configures CORS and request logging,
+  starts Redis, and initializes the database lifecycle.
+- `app/Api/v1/router.py` mounts the v1 auth router under `/v1`.
+- `app/Api/v2/router.py` mounts the webhook router under `/v2`.
+- `app/Auth/router.py` implements signup, login, profile lookup, password change,
+  and password-reset flows.
+- `app/Auth/schemas.py` defines the request and response models used by auth
+  endpoints.
+- `app/Auth/security.py` contains password hashing, JWT creation/validation, and
+  token helpers.
+- `app/db/session.py` owns the database engine, lifecycle hooks, and `get_db`.
+- `app/config.py` defines environment-backed settings and defaults.
+- `app/models/` contains the SQLAlchemy models and webhook record table.
+- `Tests/test_app.py` holds the automated tests for the app.
+- `Tests/load_test.py` is a separate load-test script and is not a unit test.
 
-The current assembled product and authentication routes include `/apps`:
+The application exposes API routes under the `/apps` prefix through the main
+router:
 
 - `/apps/v1/auth/...`
-- `/apps/v1/products`
-- `/apps/v2/products`
+- `/apps/v2/github-webhook`
 
-Check the router definitions when adding endpoints; do not assume paths from
+Check the router definitions before adding endpoints; do not assume paths from
 external examples or omit the `/apps` prefix.
 
 ## Implement a change step by step
 
-1. **Find the owning layer.** Start at the route for an API behavior, then
-   follow its schema, service, model, and dependencies as applicable.
-2. **Define API data shapes.** Add or update Pydantic request/response models
-   in the relevant schema module. Keep input validation and response shape
-   explicit.
-3. **Update persistence only when needed.** Put SQLAlchemy model changes in
-   the owning model module. Keep database operations in the relevant service
-   or existing domain module, and use the shared `get_db` dependency for
-   request-scoped sessions.
-4. **Implement route behavior.** Use the existing router and dependency
-   patterns. Return appropriate HTTP status codes and raise
-   `HTTPException` for expected API errors rather than hiding failures.
-5. **Preserve cache behavior.** Product v2 routes use Redis; when changing
-   product data, consider both the individual product key and cached product
-   lists. Use helpers in `app/redis/product_cache.py`.
-6. **Register routes if necessary.** A new router must be included through the
-   existing API router hierarchy so it receives the `/apps` prefix.
-7. **Add or update focused tests.** Follow `agents2.md`; test observable
-   status codes, response bodies, and relevant failure cases.
+1. **Find the owning layer.** Start at the route that exposes the behavior,
+   then follow the schema, model, and dependency used by it.
+2. **Define API data shapes.** Add or update Pydantic request/response models in
+   the relevant schema module. Keep validation explicit.
+3. **Update persistence only when needed.** Put SQLAlchemy model changes in the
+   owning model module and keep database work in the shared `get_db` flow.
+4. **Implement route behavior.** Use the existing router patterns and raise
+   `HTTPException` for expected errors instead of swallowing failures.
+5. **Keep startup/config behavior consistent.** Any env-backed configuration or
+   Redis/database initialization change should still pass application startup.
+6. **Register routes if necessary.** New routers must be included in the app's
+   router hierarchy so they receive the `/apps` prefix when applicable.
+7. **Add or update focused tests.** Follow `agents2.md`; test actual HTTP
+   behavior and assert both status codes and response data.
 8. **Run the relevant checks.** Start with the focused test file, then run the
-   complete test suite for changes that affect shared behavior.
-9. **Update documentation** when public API behavior, configuration, setup,
-   or commands change.
+   full suite if the change affects shared startup or auth behavior.
+9. **Update documentation** when public API behavior, configuration, or setup
+   changes.
 
 ## Repository conventions and guardrails
 
-- Preserve the existing package capitalization (`app/Api` and `app/Auth`);
-  imports are case-sensitive on many deployment systems.
-- Reuse existing settings, dependencies, and helpers rather than duplicating
-  them.
-- Do not put database queries, secrets, or external service credentials in
-  route handlers or tests unnecessarily.
-- Tests must not call real email or phone-verification services. Mock those
-  boundaries in tests.
+- Preserve the existing package capitalization (`app/Api`, `app/Auth`,
+  `Tests`) and import paths.
+- Reuse existing settings and helpers instead of duplicating logic.
+- Do not put database queries, secrets, or credentials in route handlers or
+  tests unnecessarily.
+- Tests must not call real email or phone-verification services; mock those
+  boundaries.
 - Do not commit `.env` values, credentials, or other secrets. Use environment
   settings for configuration.
 - Keep changes limited to the requested behavior and preserve existing API
-  response shapes unless a change explicitly requires otherwise.
+  responses unless a change explicitly requires a different contract.

@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.middlewares.logging import logger
-from app.Api.router import api_router
+from app.Api.v1.router import router as v1_router
+from app.Api.v2.router import router as v2_router
 from app.Auth.security import get_jwt_secret
 from app.config import settings
 from app.db.session import close_db, init_db
@@ -97,4 +98,5 @@ async def redis_health(request: Request):
         return {"status": "degraded", "redis": "down"}
 
 
-app.include_router(api_router)
+app.include_router(v1_router, prefix="/apps")
+app.include_router(v2_router, prefix="/apps")

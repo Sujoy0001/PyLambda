@@ -18,11 +18,14 @@ uv sync
 ```
 
 Copy `.env.example` to `.env`, then replace the example values with your
-settings:
+settings. The project reads the environment at startup and expects the
+following values to be present:
 
 - `DATABASE_URL` — a SQLAlchemy database URL, such as
   `postgresql+psycopg://user:password@localhost:5432/pylambda`
 - `JWT_SECRET_KEY` — a random secret with at least 32 characters
+- `REDIS_URL` — the Redis connection string used by the app health checks and
+  startup validation
 - `CORS_ORIGINS` — JSON array of allowed browser origins; defaults to `["*"]`.
   For production, set this to your frontend origin(s), for example
   `["https://example.com"]`.
@@ -38,14 +41,14 @@ SMTP host, port, and credentials.
 - `SMTP_FROM_EMAIL` — sender email address
 - `SMTP_USE_TLS` — use STARTTLS (defaults to `true`)
 - `PASSWORD_RESET_API_URL` — API URL included in reset emails; defaults to
-  `http://localhost:8000/v1/auth/reset-password`
+  `http://localhost:8000/apps/v1/auth/reset-password`
 
 Reset tokens expire after 15 minutes by default. Change this with
 `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`. Keep SMTP credentials private and never
 commit them.
 
-The database must be reachable when the application starts. Its tables are
-created automatically.
+The database and Redis services must be reachable when the application starts.
+The database schema is created automatically.
 
 Logs are written to the console and `Logs/app.log`.
 
@@ -82,24 +85,28 @@ Compose loads `.env` into the container at runtime. The file is not copied into
 the image. Stop the app with `Ctrl+C`, or run `docker compose down` in another
 terminal.
 
-The database must be reachable from inside the container. When connecting to a
-database running directly on the host, use `host.docker.internal` instead of
-`localhost` in `DATABASE_URL`.
+The database and Redis services must be reachable from inside the container.
+When connecting to a database running directly on the host, use
+`host.docker.internal` instead of `localhost` in `DATABASE_URL`.
 
 ## API
+
+The application mounts its routers under the `/apps` prefix.
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/` | Basic service response |
 | `GET` | `/health` | Health check |
-| `POST` | `/v1/auth/signup` | Register with a username and password |
-| `POST` | `/v1/auth/login` | Exchange credentials for an access token |
-| `GET` | `/v1/auth/me` | Get the authenticated user's profile |
-| `POST` | `/v1/auth/me/change-password` | Change password for the authenticated user |
-| `POST` | `/v1/auth/forgot-password` | Request a password reset email |
-| `POST` | `/v1/auth/reset-password` | Reset password with an emailed token |
+| `GET` | `/redis_health` | Redis connectivity check |
+| `POST` | `/apps/v1/auth/signup` | Register with a username and password |
+| `POST` | `/apps/v1/auth/login` | Exchange credentials for an access token |
+| `GET` | `/apps/v1/auth/me` | Get the authenticated user's profile |
+| `POST` | `/apps/v1/auth/me/change-password` | Change password for the authenticated user |
+| `POST` | `/apps/v1/auth/forgot-password` | Request a password reset email |
+| `POST` | `/apps/v1/auth/reset-password` | Reset password with an emailed token |
+| `POST` | `/apps/v2/github-webhook` | Receive GitHub star webhook events |
 
-To request a reset, send `POST /v1/auth/forgot-password` with:
+To request a reset, send `POST /apps/v1/auth/forgot-password` with:
 
 ```json
 {
@@ -108,7 +115,7 @@ To request a reset, send `POST /v1/auth/forgot-password` with:
 ```
 
 The email contains a one-time token. Submit it with the new password to
-`POST /v1/auth/reset-password`:
+`POST /apps/v1/auth/reset-password`:
 
 ```json
 {
@@ -117,10 +124,10 @@ The email contains a one-time token. Submit it with the new password to
 }
 ```
 
-Signup and login accept JSON with a `username` (3–50 characters) and `password`
-(8–128 characters). Send the login response's `access_token` on protected
-requests using the `Authorization: Bearer <token>` header. Access tokens expire
-after 30 minutes.
+Signup and login accept JSON with a `username` (3–50 characters), `useremail`,
+and `password` (8–128 characters). Send the login response's `access_token` on
+protected requests using the `Authorization: Bearer <token>` header. Access
+tokens expire after 30 minutes.
 
 ## Tests
 

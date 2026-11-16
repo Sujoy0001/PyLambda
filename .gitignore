@@ -72,3 +72,10 @@ secrets.toml
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+
+"""
+FastAPI Cloud and vscode
+"""
+.fastapicloud
+.vscode/

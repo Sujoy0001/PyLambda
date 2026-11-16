@@ -1,8 +1,14 @@
 .git
+.gitignore
+.github
+.vscode
+.idea
 .venv
 venv
 __pycache__
 *.py[cod]
+*.pyo
+*.pyd
 .env
 .env.*
 !.env.example
@@ -16,5 +22,8 @@ Logs
 .coverage.*
 htmlcov
 Tests
-.vscode
-.idea
+*.md
+Dockerfile
+compose.yaml
+*.sqlite3
+*.db
