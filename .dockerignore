@@ -1,5 +1,6 @@
 .git
 .gitignore
+.dockerignore
 .github
 .vscode
 .idea
@@ -11,7 +12,6 @@ __pycache__
 *.pyd
 .env
 .env.*
-!.env.example
 Logs
 *.log
 .pytest_cache
@@ -25,5 +25,6 @@ Tests
 *.md
 Dockerfile
 compose.yaml
+docker-compose.yml
 *.sqlite3
 *.db

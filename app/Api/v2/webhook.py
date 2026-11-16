@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.webhook import RepoStar
 
-router = APIRouter(prefix="/v2", tags=["post request when someone star the repo"])
+router = APIRouter()
 
 
 @router.post("/github-webhook")

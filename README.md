@@ -74,60 +74,43 @@ frontend's origin(s) when deploying.
 
 ## Run with Docker
 
-After configuring `.env` as described above, build and start the app from the
-project root:
+Create `.env` from `.env.example` and set `JWT_SECRET_KEY` to a random value
+of at least 32 characters. From the project root, build and start the services:
 
 ```powershell
 docker compose up --build
 ```
 
-Compose loads `.env` into the container at runtime. The file is not copied into
-the image. Stop the app with `Ctrl+C`, or run `docker compose down` in another
-terminal.
+For later runs, start the existing services without rebuilding:
 
-The database and Redis services must be reachable from inside the container.
-When connecting to a database running directly on the host, use
-`host.docker.internal` instead of `localhost` in `DATABASE_URL`.
+```powershell
+docker compose up
+```
+
+Use `docker compose up --build` again after changing the Dockerfile or
+dependencies.
+
+Compose builds the application image and starts the app, PostgreSQL, and Redis
+containers. The app connects to PostgreSQL at `db:5432` and Redis at
+`redis:6379` over the Compose network; no external database or Redis URLs are
+required. Compose supplies these service URLs to the app, overriding the
+corresponding values in `.env`.
+
+PostgreSQL data is stored in a named volume and survives container restarts.
+Redis is configured as an ephemeral service, so its data is not persisted.
+Default PostgreSQL credentials are for local development only. Set
+`POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` to customize them, and
+use secure credentials for any non-development deployment.
+
+Stop the services with `Ctrl+C` or run `docker compose down`. To also delete
+the persisted PostgreSQL data, run `docker compose down --volumes`.
 
 ## API
-
-The application mounts its routers under the `/apps` prefix.
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/` | Basic service response |
 | `GET` | `/health` | Health check |
-| `GET` | `/redis_health` | Redis connectivity check |
-| `POST` | `/apps/v1/auth/signup` | Register with a username and password |
-| `POST` | `/apps/v1/auth/login` | Exchange credentials for an access token |
-| `GET` | `/apps/v1/auth/me` | Get the authenticated user's profile |
-| `POST` | `/apps/v1/auth/me/change-password` | Change password for the authenticated user |
-| `POST` | `/apps/v1/auth/forgot-password` | Request a password reset email |
-| `POST` | `/apps/v1/auth/reset-password` | Reset password with an emailed token |
-| `POST` | `/apps/v2/github-webhook` | Receive GitHub star webhook events |
-
-To request a reset, send `POST /apps/v1/auth/forgot-password` with:
-
-```json
-{
-  "useremail": "you@example.com"
-}
-```
-
-The email contains a one-time token. Submit it with the new password to
-`POST /apps/v1/auth/reset-password`:
-
-```json
-{
-  "token": "token-from-the-email",
-  "new_password": "your-new-password"
-}
-```
-
-Signup and login accept JSON with a `username` (3–50 characters), `useremail`,
-and `password` (8–128 characters). Send the login response's `access_token` on
-protected requests using the `Authorization: Bearer <token>` header. Access
-tokens expire after 30 minutes.
 
 ## Tests
 
