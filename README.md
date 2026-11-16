@@ -131,3 +131,9 @@ Quick start: start the app, then run:
 ```powershell
 uv run python Tests\load_test.py --requests 100 --concurrency 10
 ```
+
+```RUN
+uv run fastapi dev
+
+uv run fastapi run app/main.py --host 0.0.0.0 --port 8000
+```
