@@ -5,6 +5,7 @@ from app.Api.v1.product_routes import router as products_router_v1
 
 
 from app.Api.v2.product_routes import router as products_router_v2
+from app.Api.v2.webhook import router as webhook_router_v2
 
 api_router = APIRouter(prefix="/apps")
 
@@ -13,3 +14,4 @@ api_router.include_router(products_router_v1)
 
 
 api_router.include_router(products_router_v2)
+api_router.include_router(webhook_router_v2)
