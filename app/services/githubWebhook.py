@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -33,8 +34,11 @@ def process_webhook_event(
             if starred_at_raw
             else None
         )
+        
+        uid = uuid.uuid4()
 
         new_star = RepoStar(
+            id=uid,
             stargazers_count=data["repository"]["stargazers_count"],
             delivery_id=delivery_id or "unknown",
             sender_id=sender_id,
@@ -70,9 +74,9 @@ def process_webhook_event(
 
     return {"status": "ignored", "action": action}
 
-# def get_latest_repo_star(db: Session):
-#     return (
-#         db.query(RepoStar.sender_username, RepoStar.stargazers_count)
-#         .order_by(RepoStar.starred_at.desc())
-#         .first()
-#     )
+def get_latest_repo_star(db: Session):
+    return (
+        db.query(RepoStar.sender_username, RepoStar.stargazers_count)
+        .order_by(RepoStar.starred_at.desc())
+        .first()
+    )

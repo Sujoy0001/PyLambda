@@ -7,7 +7,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.Auth.models import User
+from app.db.base import Base
 from app.middlewares.database_logging import (
     close_database as dispose_database,
     configure_database_connection_logging,
@@ -49,7 +49,7 @@ def get_engine() -> Engine:
 
 
 def init_db() -> None:
-    initialize_database(get_engine(), User.metadata)
+    initialize_database(get_engine(), Base.metadata)
 
 
 def close_db() -> None:

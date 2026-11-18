@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from unittest.mock import patch
@@ -285,6 +286,53 @@ class AppTests(unittest.TestCase):
 
         self.assertEqual(duplicate_response.status_code, 409)
         self.assertEqual(invalid_login_response.status_code, 401)
+
+    def test_github_star_count_tracks_repo_star_events(self):
+        initial_count_response = self.client.get("/apps/v2/github-star-count")
+        initial_count = initial_count_response.json()["count"]
+
+        created_payload = {
+            "action": "created",
+            "sender": {"id": 999111, "login": "octocat"},
+            "repository": {"stargazers_count": 1},
+            "starred_at": "2024-12-31T23:59:59Z",
+        }
+        created_response = self.client.post(
+            "/apps/v2/github-webhook",
+            data={"payload": json.dumps(created_payload)},
+            headers={
+                "x-github-event": "star",
+                "x-github-delivery": "test-delivery-1",
+            },
+        )
+
+        self.assertEqual(created_response.status_code, 200)
+        self.assertEqual(created_response.json()["status"], "added")
+
+        updated_count_response = self.client.get("/apps/v2/github-star-count")
+        self.assertEqual(updated_count_response.status_code, 200)
+        self.assertEqual(updated_count_response.json()["count"], initial_count + 1)
+
+        deleted_payload = {
+            "action": "deleted",
+            "sender": {"id": 999111, "login": "octocat"},
+            "repository": {"stargazers_count": 0},
+        }
+        deleted_response = self.client.post(
+            "/apps/v2/github-webhook",
+            data={"payload": json.dumps(deleted_payload)},
+            headers={
+                "x-github-event": "star",
+                "x-github-delivery": "test-delivery-2",
+            },
+        )
+
+        self.assertEqual(deleted_response.status_code, 200)
+        self.assertEqual(deleted_response.json()["status"], "removed")
+
+        final_count_response = self.client.get("/apps/v2/github-star-count")
+        self.assertEqual(final_count_response.status_code, 200)
+        self.assertEqual(final_count_response.json()["count"], initial_count)
 
     def test_protected_profile_requires_a_valid_token(self):
         response = self.client.get("/apps/v1/auth/me")
